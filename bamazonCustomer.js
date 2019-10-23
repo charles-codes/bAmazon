@@ -1,6 +1,8 @@
+// variables for node package requirements
 var mysql = require("mysql");
 var inquirer = require("inquirer");
 
+// variable for initial mysql connection
 var connection = mysql.createConnection({
     host: "localhost",
     port: 3306,
@@ -9,99 +11,81 @@ var connection = mysql.createConnection({
     database: "bamazon_db"
 });
 
+// initializing mysql connection
 connection.connect(function(err){
     if(err) throw(err);
+    console.log("=======================================");
 
-    buy();
-    console.log("\n");
-    productsList();
-    
-   
+    // run the start shopping function which will be the beginning of customer experience 
+    startShopping();
 });
 
-function productsList() {
+// function that includes all of operational logic 
+function startShopping() {
+    // mysql connecton query
     connection.query("SELECT * FROM products", function(err, results){
         if (err) throw (err);
+
+        // loop to display all products in inventory for customer to peruse
         for (let i = 0; i < results.length; i++) {
             console.log(results[i].item_id + " | " + results[i].product_name + " | " + results[i].department_name + " | " + results[i].price + " | ");
-        }
-        console.log("=======================================");
-        //connection.end();
-    });
-};
-
-function buy() {
-    //console.log("\n");
-    inquirer.prompt({
-        name: "product",
-        type: "input",
-        message: "Type the product id number of the product you'd like to buy.",
-        validate: function(value) {
-            if (isNaN(value) === false) {
-              return true;
-            }
-            return false;
-            }
-    },
-    {
-        name: "quantity",
-        type: "input",
-        message: "How many units would you like to buy?",
-        validate: function(value) {
-            if (isNaN(value) === false) {
-              return true;
-            }
-            return false;
-        }
-    })
-    .then(function(answer) {
-        connection.query("SELECT product_name, department_name, price, stock_quantity * FROM  products WHERE ?", {item_id: answer.item_id}, function(err, results){
-            if (err) throw (err);
-            if (results[0].stock_quantity >= answer.quantity) {
-                let itemQuantity = results[0].stock_quantity - answer.quantity;
-                connection.query("UPDATE products SET ? WHERE ?"), [
-                    {
-                        stock_quantity: itemQuantity
-                    },
-                    {
-                        item_id: answer.item_id
-                    }
-                ], function (err, results) {
-
-                };
-
-                var cost = results[0].price * answer.quantity;
-                console.log("\n Order complete. Your cost is $" + cost.toFixed(2) + "\n.");
-                shoppingPrompt();
-            }
-            else {
-                console.log("\nInsufficient quantity available. We are unable to complete your order.\n");
-                shoppingPrompt();
+            console.log("=======================================")
+        };
+        // inquirer prompt to begin the customer's options and actions while shoping
+        inquirer.prompt({
+            name: "item",
+            type: "rawlist",
+            choices: function() {
+                var choicesArr = [];
+                for (var i = 0; i <results.length; i++) {
+                    choicesArr.push(results[i].product_name);
+                }
+                return choicesArr;
+                },
+            message: "Which product would you like to buy?"
+        }).then(function(answer) {
+            if (err) throw err;
+            for (i = 0; i < results.length; i++) {
+                if (results[i].product_name == answer.item) {
+                    var chosenItem = results[i];
+                    inquirer.prompt({
+                        name: "quantity",
+                        type: "input",
+                        message: "How many " + answer.item + " would you like to purchase?",
+                        validate: function(value) {
+                            if (isNaN(value) == false) {
+                                return true;
+                            }
+                            else {
+                                return false;
+                            }
+                        }
+                    }).then(function(answer) {
+                        if (chosenItem.stock_quantity > parseInt(answer.quantity)) {
+                            var updateInventory = chosenItem.stock_quantity - parseInt(answer.quantity);
+                            connection.query("UPDATE products SET ? WHERE ?", [{
+                                stock_quantity: updateInventory
+                            }, 
+                            {
+                                id: chosenItem.id
+                            }], function () {
+                                var cost = chosenItem.price * parseInt(answer.quantity);
+                                console.log("=======================================");
+                                console.log("Order successful. Your shopping cart is updated.\n");
+                                console.log("You purchased " + (parseInt(answer.quantity)) + " " + (chosenItem.product_name) + " at the price of $" + chosenItem.price + " each.");
+                                console.log("Your subtotal is: $" + cost);
+                                console.log("\nThank you for your purchase!");
+                                console.log("=======================================");
+                                connection.end();
+                            })
+                        }
+                        else {
+                            console.log("Insufficient quantity.");
+                            start
+                        }
+                    })
+                }
             }
         })
-    })
-
-}
-
-function shoppingPrompt() {
-    inquirer.prompt({
-        name: "shop",
-        type: "list",
-        message: "Would you like to continue shopping?\n",
-        choices: ["Yes", "No"]
-    })
-    .then(function(answer){
-        switch(answer.shop) {
-            case "Yes":
-                productsList();
-                buy();
-            break;
-            
-            case "No":
-                connection.end();
-            break;
-        }
-    })
+    });
 };
-
-//buy();
