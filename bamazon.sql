@@ -41,3 +41,5 @@ VALUES ("Envelopes", "Crafts", 9.99, 75);
 
 INSERT INTO products (product_name, department_name, price, stock_quantity)
 VALUES ("Bic Calligraphy Pen", "Crafts", 7.99, 50);
+
+-- SELECT * FROM products;
