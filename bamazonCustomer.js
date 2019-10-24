@@ -6,8 +6,8 @@ var inquirer = require("inquirer");
 var connection = mysql.createConnection({
     host: "localhost",
     port: 3306,
-    user: "root",
-    password: "tarheels",
+    user: "",
+    password: "",
     database: "bamazon_db"
 });
 
@@ -22,9 +22,10 @@ connection.connect(function(err){
 
 // function that includes all of operational logic 
 function startShopping() {
+
     // mysql connecton query
     connection.query("SELECT * FROM products", function(err, results){
-        if (err) throw (err);
+        if (err) throw err;
 
         // loop to display all products in inventory for customer to peruse
         console.log("ID | Product Name | Department | Price");
@@ -34,10 +35,12 @@ function startShopping() {
             console.log(results[i].item_id + " | " + results[i].product_name + " | " + results[i].department_name + " | " + results[i].price + " | ");
             console.log("------------------------------------------------------------");
         };
+
         // inquirer prompt to begin the customer's options and actions while shoping
         inquirer.prompt({
             name: "item",
             type: "rawlist",
+
             // the choices for this list is formed by a function and array with loop in it
             choices: function() {
                 let choicesArr = [];
@@ -58,6 +61,8 @@ function startShopping() {
                         name: "quantity",
                         type: "input",
                         message: "How many " + answer.item + " would you like to purchase?",
+
+                        // validation as a funciton to ensure the input is a number
                         validate: function(value) {
                             if (isNaN(value) == false) {
                                 return true;
@@ -67,9 +72,11 @@ function startShopping() {
                             }
                         }
                     }).then(function(answer) {
+
                         // checking for selected item quantity
                         if (chosenItem.stock_quantity > parseInt(answer.quantity)) {
                             let updateInventory = chosenItem.stock_quantity - parseInt(answer.quantity);
+
                             // query to update the inventory
                             connection.query("UPDATE products SET ? WHERE ?", [{
                                 stock_quantity: updateInventory
@@ -77,22 +84,26 @@ function startShopping() {
                                 {
                                 id: chosenItem.id
                             }], 
+
                             // function to calculate items cost 
                             function () {
                                 let cost = chosenItem.price * parseInt(answer.quantity);
                                 console.log("============================================================");;
                                 console.log("Order successful. Your shopping cart is updated.\n");
                                 console.log("You purchased " + (parseInt(answer.quantity)) + " " + (chosenItem.product_name) + " at the price of $" + chosenItem.price + " each.");
-                                console.log("Your subtotal is: $" + cost);
+                                console.log("Your subtotal is: $" + cost.toFixed(2));
                                 console.log("\nThank you for your purchase!");
                                 console.log("============================================================");;
                                 
+                                // inquirer to determine whether the customer wants to continue shopping
                                 inquirer.prompt({
                                     name: "continue",
                                     type: "list",
                                     message: "Would you like to continue shopping?",
                                     choices: ["Yes", "No"]
                                 }).then(function(answer){
+                                    
+                                    // customer wants to continue shopping so we call start shopping function and start again
                                     if (answer.continue == "Yes") {
                                         startShopping();
                                     }
@@ -104,8 +115,8 @@ function startShopping() {
                             })
                         }
                         else {
-                            console.log("Insufficient quantity.");
                             console.log("============================================================\n");
+                            console.log("Insufficient quantity.");
                             console.log("============================================================");;
 
                             // call startShopping function to begin the shopping prompt

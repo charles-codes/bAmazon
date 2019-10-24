@@ -28,7 +28,7 @@ INSERT INTO products (product_name, department_name, price, stock_quantity)
 VALUES ("Digital Printer", "Consumer Electronics", 129.99, 25);
 
 INSERT INTO products (product_name, department_name, price, stock_quantity)
-VALUES ("Custom Stationary", "Crafts", 15.99, 75);
+VALUES ("Printing Paper", "Crafts", 15.99, 75);
 
 INSERT INTO products (product_name, department_name, price, stock_quantity)
 VALUES ("Lined Ruler", "Crafts", 3.99, 200);
