@@ -14,7 +14,7 @@ var connection = mysql.createConnection({
 // initializing mysql connection
 connection.connect(function(err){
     if(err) throw(err);
-    console.log("=======================================");
+    console.log("============================================================");
 
     // run the start shopping function which will be the beginning of customer experience 
     startShopping();
@@ -27,17 +27,21 @@ function startShopping() {
         if (err) throw (err);
 
         // loop to display all products in inventory for customer to peruse
+        console.log("ID | Product Name | Department | Price");
+        console.log("============================================================");
         for (let i = 0; i < results.length; i++) {
+            console.log("------------------------------------------------------------");
             console.log(results[i].item_id + " | " + results[i].product_name + " | " + results[i].department_name + " | " + results[i].price + " | ");
-            console.log("=======================================")
+            console.log("------------------------------------------------------------");
         };
         // inquirer prompt to begin the customer's options and actions while shoping
         inquirer.prompt({
             name: "item",
             type: "rawlist",
+            // the choices for this list is formed by a function and array with loop in it
             choices: function() {
-                var choicesArr = [];
-                for (var i = 0; i <results.length; i++) {
+                let choicesArr = [];
+                for (let i = 0; i <results.length; i++) {
                     choicesArr.push(results[i].product_name);
                 }
                 return choicesArr;
@@ -45,9 +49,11 @@ function startShopping() {
             message: "Which product would you like to buy?"
         }).then(function(answer) {
             if (err) throw err;
+
+            // loop to cycle through products for a match the selected item
             for (i = 0; i < results.length; i++) {
                 if (results[i].product_name == answer.item) {
-                    var chosenItem = results[i];
+                    let chosenItem = results[i];
                     inquirer.prompt({
                         name: "quantity",
                         type: "input",
@@ -61,27 +67,49 @@ function startShopping() {
                             }
                         }
                     }).then(function(answer) {
+                        // checking for selected item quantity
                         if (chosenItem.stock_quantity > parseInt(answer.quantity)) {
-                            var updateInventory = chosenItem.stock_quantity - parseInt(answer.quantity);
+                            let updateInventory = chosenItem.stock_quantity - parseInt(answer.quantity);
+                            // query to update the inventory
                             connection.query("UPDATE products SET ? WHERE ?", [{
                                 stock_quantity: updateInventory
-                            }, 
-                            {
+                                }, 
+                                {
                                 id: chosenItem.id
-                            }], function () {
-                                var cost = chosenItem.price * parseInt(answer.quantity);
-                                console.log("=======================================");
+                            }], 
+                            // function to calculate items cost 
+                            function () {
+                                let cost = chosenItem.price * parseInt(answer.quantity);
+                                console.log("============================================================");;
                                 console.log("Order successful. Your shopping cart is updated.\n");
                                 console.log("You purchased " + (parseInt(answer.quantity)) + " " + (chosenItem.product_name) + " at the price of $" + chosenItem.price + " each.");
                                 console.log("Your subtotal is: $" + cost);
                                 console.log("\nThank you for your purchase!");
-                                console.log("=======================================");
-                                connection.end();
+                                console.log("============================================================");;
+                                
+                                inquirer.prompt({
+                                    name: "continue",
+                                    type: "list",
+                                    message: "Would you like to continue shopping?",
+                                    choices: ["Yes", "No"]
+                                }).then(function(answer){
+                                    if (answer.continue == "Yes") {
+                                        startShopping();
+                                    }
+                                    else {
+                                        // customer is finished shopping so we end the connection to the mysql database
+                                        connection.end();
+                                    }
+                                });
                             })
                         }
                         else {
                             console.log("Insufficient quantity.");
-                            start
+                            console.log("============================================================\n");
+                            console.log("============================================================");;
+
+                            // call startShopping function to begin the shopping prompt
+                            startShopping();
                         }
                     })
                 }
